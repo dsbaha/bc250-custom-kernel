@@ -1,0 +1,43 @@
+name: Build Fedora 44 Kernel With Custom Patches
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-kernel:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:44
+      options: --privileged
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          dnf install -y fedpkg rpmdevtools mock make gcc flex bison dwarves openssl-devel elfutils-libelf-devel
+
+      - name: Clone Dist-Git and Prep Workspace
+        run: |
+          fedpkg clone --anonymous kernel
+          cd kernel
+          fedpkg switch-branch f44
+          
+      - name: Copy Patch
+        run: |
+          # Copies your patch from the repo root into the cloned kernel folder
+          cp linux-kernel-test.patch kernel/linux-kernel-test.patch
+
+      - name: Build Kernel
+        run: |
+          cd kernel
+          fedpkg sources
+          fedpkg mockbuild
+
+      - name: Upload Kernel RPM Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fedora-44-kernel-rpms
+          path: kernel/results_kernel/**/*
