@@ -1,5 +1,5 @@
---- a/drivers/gpu/drm/amd/amdgpu/amdgpu.h       2026-06-19 11:48:13.000000000 +0000
-+++ b/drivers/gpu/drm/amd/amdgpu/amdgpu.h       2026-06-20 15:50:11.146017208 +0000
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu.h	2026-06-09 10:32:51.000000000 +0000
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu.h	2026-06-20 18:32:23.484183052 +0000
 @@ -157,6 +157,7 @@
  /*
   * Modules parameters.
@@ -8,10 +8,10 @@
  extern int amdgpu_modeset;
  extern unsigned int amdgpu_vram_limit;
  extern int amdgpu_vis_vram_limit;
---- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c   2026-06-19 11:48:13.000000000 +0000
-+++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c   2026-06-20 15:51:31.158132423 +0000
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c	2026-06-09 10:32:51.000000000 +0000
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c	2026-06-20 18:31:48.981086644 +0000
 @@ -272,6 +272,10 @@
-        .period = 0x0, /* default to 0x0 (timeout disable) */
+ 	.period = 0x0, /* default to 0x0 (timeout disable) */
  };
  
 +int amdgpu_bc250 = 0;
@@ -21,57 +21,41 @@
  /**
   * DOC: vramlimit (int)
   * Restrict the total amount of VRAM in MiB for testing.  The default is 0 (Use full VRAM).
---- a/drivers/gpu/drm/amd/amdgpu/gmc_v10_0.c    2026-06-19 11:48:13.000000000 +0000
-+++ b/drivers/gpu/drm/amd/amdgpu/gmc_v10_0.c    2026-06-20 15:52:31.739932678 +0000
-@@ -970,6 +970,9 @@
-        int r;
+--- a/drivers/gpu/drm/amd/amdgpu/gmc_v10_0.c	2026-06-09 10:32:51.000000000 +0000
++++ b/drivers/gpu/drm/amd/amdgpu/gmc_v10_0.c	2026-06-20 18:33:27.145245964 +0000
+@@ -766,6 +766,10 @@
+ 	} else if (amdgpu_emu_mode == 1) {
+ 		adev->gmc.vram_type = AMDGPU_VRAM_TYPE_GDDR6;
+ 		adev->gmc.vram_width = 1 * 128; /* numchan * chansize */
++	} else if (amdgpu_bc250 == 1) {
++		adev->gmc.is_app_apu = true;
++		adev->gmc.vram_type = AMDGPU_VRAM_TYPE_GDDR6;
++		adev->gmc.vram_width = 256;
+ 	} else {
+ 		r = amdgpu_atomfirmware_get_vram_info(adev,
+ 				&vram_width, &vram_type, &vram_vendor);
+@@ -970,6 +974,10 @@
+ 	int r;
  
-        adev->gmc.flush_pasid_uses_kiq = !amdgpu_emu_mode;
-+       if (amdgpu_bc250 == 1) {
-+       adev->gmc.flush_pasid_uses_kiq = false;
-+       }
+ 	adev->gmc.flush_pasid_uses_kiq = !amdgpu_emu_mode;
++	if (amdgpu_bc250 == 1) {
++	        adev->gmc.flush_pasid_uses_kiq = false;
++	}
++
  
-        /* The sequence of these two function calls matters.*/
-        gmc_v10_0_init_golden_registers(adev);
---- a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c        2026-06-19 11:48:13.000000000 +0000
-+++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c        2026-06-20 15:57:52.579932415 +0000
-@@ -1076,6 +1076,12 @@
-        drm_info(adev_to_drm(adev), "Detected VRAM RAM=%lluM, BAR=%lluM\n",
-                 adev->gmc.mc_vram_size >> 20,
-                 (unsigned long long)adev->gmc.aper_size >> 20);
+ 	/* The sequence of these two function calls matters.*/
+ 	gmc_v10_0_init_golden_registers(adev);
+--- a/drivers/gpu/drm/amd/amdkfd/kfd_crat.c	2026-06-09 10:32:51.000000000 +0000
++++ b/drivers/gpu/drm/amd/amdkfd/kfd_crat.c	2026-06-20 18:15:45.467336886 +0000
+@@ -1125,6 +1125,11 @@
+ 							mem->length_low;
+ 			width = mem->width;
+ 
++			if (amdgpu_bc250 == 1) {
++				width = 256;
++				heap_type = HSA_MEM_HEAP_TYPE_FB_PUBLIC;
++			}
 +
-+       if (amdgpu_bc250 == 1) {
-+               adev->gmc.vram_width = 256;
-+               adev->gmc.vram_type = AMDGPU_VRAM_TYPE_GDDR6;
-+       }
-+
-        drm_info(adev_to_drm(adev), "RAM width %dbits %s\n",
-                 adev->gmc.vram_width, amdgpu_vram_names[adev->gmc.vram_type]);
-        return amdgpu_ttm_init(adev);
---- a/drivers/gpu/drm/amd/amdkfd/kfd_crat.c     2026-06-19 11:48:13.000000000 +0000
-+++ b/drivers/gpu/drm/amd/amdkfd/kfd_crat.c     2026-06-20 16:01:26.089104407 +0000
-@@ -2442,6 +2442,24 @@
-                *size = VCRAT_SIZE_FOR_GPU;
-                ret = kfd_create_vcrat_image_gpu(pcrat_image, size, kdev,
-                                                 proximity_domain);
-+
-+               if (!ret && amdgpu_bc250 == 1) {
-+                       struct crat_header *crat_hdr = (struct crat_header *)pcrat_image;
-+                       char *entry_ptr = (char *)(crat_hdr + 1);
-+                       int i;
-+
-+                       for (i = 0; i < crat_hdr->total_entries; i++) {
-+                               struct crat_subtype_memory *mem = (struct crat_subtype_memory *)entry_ptr;
-+
-+                               if (mem->type == CRAT_SUBTYPE_MEMORY_AFFINITY) {
-+                                       mem->visibility_type = 0; /* 0 = Force Fine-Grained UMA Visibility */
-+                                       mem->flags |= (CRAT_MEM_FLAGS_LOCAL_MEMORY);
-+                               }
-+                               entry_ptr += mem->length;
-+                       }
-+                       pr_info("amdgpu: Overrode Virtual GPU CRAT allocations to coherent UMA for PS5.\n");
-+               }
-+
-                break;
-        case (COMPUTE_UNIT_CPU | COMPUTE_UNIT_GPU):
-                /* TODO: */
+ 			/* Multiple banks of the same type are aggregated into
+ 			 * one. User mode doesn't care about multiple physical
+ 			 * memory segments. It's managed as a single virtual

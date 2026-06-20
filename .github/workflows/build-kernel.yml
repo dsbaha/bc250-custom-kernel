@@ -33,7 +33,7 @@ jobs:
       - name: Build Kernel
         run: |
           cd kernel
-          fedpkg mockbuild -- --without debug --without debuginfo
+          fedpkg mockbuild -- --without debug
 
       - name: Upload Kernel RPM Artifacts
         uses: actions/upload-artifact@v4
