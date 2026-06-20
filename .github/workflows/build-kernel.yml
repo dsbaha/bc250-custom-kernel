@@ -8,6 +8,7 @@ on:
 jobs:
   build-kernel:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     container:
       image: fedora:44
       options: --privileged

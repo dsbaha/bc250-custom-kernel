@@ -59,3 +59,13 @@
  			/* Multiple banks of the same type are aggregated into
  			 * one. User mode doesn't care about multiple physical
  			 * memory segments. It's managed as a single virtual
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c	2026-06-09 10:32:51.000000000 +0000
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c	2026-06-20 21:16:31.672343202 +0000
+@@ -1860,6 +1860,7 @@
+ 		dev_err(adev->dev, "alloc tmr failed(%d)!\n", ret);
+ 		amdgpu_bo_free_kernel(&adev->mman.fw_reserved_memory, NULL,
+ 				      NULL);
++		if (amdgpu_bc250 == 1) return 0;
+ 		return ret;
+ 	}
+ 
