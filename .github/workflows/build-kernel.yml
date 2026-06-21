@@ -20,7 +20,7 @@ jobs:
 
       - name: Install Build Dependencies for Fedora Kernel
         run: |
-          dnf builddep -y kernel
+          dnf builddeps -y kernel
 
       - name: Download and Unpack Fedora Kernel Source Package
         run: |
@@ -34,7 +34,7 @@ jobs:
 
       - name: Install Explicit Kernel Compiler Dependencies
         run: |
-          dnf builddep -y ~/rpmbuild/SPECS/kernel.spec
+          dnf builddeps -y ~/rpmbuild/SPECS/kernel.spec
 
       - name: Execute RPM Build (Compile Binary Packages Only)
         run: |
