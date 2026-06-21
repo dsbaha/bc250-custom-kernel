@@ -29,8 +29,7 @@ jobs:
 
       - name: Inject Custom Test Patch into Build Tree
         run: |
-          cd ~/
-          cp ${{ github.workspace }}/linux-kernel-test.patch ~/rpmbuild/SOURCES/
+          cp linux-kernel-test.patch ~/rpmbuild/SOURCES/
 
       - name: Install Explicit Kernel Compiler Dependencies
         run: |
