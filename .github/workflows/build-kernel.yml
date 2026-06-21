@@ -12,7 +12,7 @@ jobs:
   build-kernel:
     runs-on: ubuntu-latest
     container:
-      image: fedora:40
+      image: fedora:44
     
     steps:
       - name: Checkout Repository Patches
@@ -20,7 +20,7 @@ jobs:
 
       - name: Install Build Dependencies for Fedora Kernel
         run: |
-          dnf builddeps -y kernel
+          dnf builddep kernel -y
 
       - name: Download and Unpack Fedora Kernel Source Package
         run: |
@@ -34,7 +34,7 @@ jobs:
 
       - name: Install Explicit Kernel Compiler Dependencies
         run: |
-          dnf builddeps -y ~/rpmbuild/SPECS/kernel.spec
+          dnf builddep -y ~/rpmbuild/SPECS/kernel.spec
 
       - name: Execute RPM Build (Compile Binary Packages Only)
         run: |
