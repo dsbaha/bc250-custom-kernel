@@ -18,37 +18,31 @@ jobs:
       - name: Checkout Repository Patches
         uses: actions/checkout@v4
 
-      - name: Install Essential RPM Development Tools
+      - name: Install Build Dependencies for Fedora Kernel
         run: |
-          dnf install -y rpmdevtools rsync fedpkg git mock \
-                         'dnf-command(builddep)' 'dnf-command(download)'
-
-      - name: Setup Local RPM Build Directory Tree
-        run: |
-          rpmdev-setuptree
+          dnf builddep -y kernel
 
       - name: Download and Unpack Fedora Kernel Source Package
         run: |
-          cd /root/rpmbuild/SOURCES
           dnf download --source kernel
           rpm -Uvh kernel-*.src.rpm --nodeps
 
       - name: Inject Custom Test Patch into Build Tree
         run: |
-          cp ${{ github.workspace }}/linux-kernel-test.patch /root/rpmbuild/SOURCES/
-          sed -i 's/# %define buildid .local/%define buildid .custom_patch/g' /root/rpmbuild/SPECS/kernel.spec
+          cd ~/
+          cp ${{ github.workspace }}/linux-kernel-test.patch ~/rpmbuild/SOURCES/
 
       - name: Install Explicit Kernel Compiler Dependencies
         run: |
-          dnf builddep -y /root/rpmbuild/SPECS/kernel.spec
+          dnf builddep -y ~/rpmbuild/SPECS/kernel.spec
 
       - name: Execute RPM Build (Compile Binary Packages Only)
         run: |
-          cd /root/rpmbuild/SPECS
+          cd ~/rpmbuild/SPECS
           rpmbuild -bb --without debug kernel.spec
 
       - name: Upload Finished Kernel RPMs as Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: patched-kernel-rpms
-          path: /root/rpmbuild/RPMS/x86_64/*.rpm
+          path: ~/rpmbuild/RPMS/x86_64/*.rpm
