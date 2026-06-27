@@ -45,17 +45,3 @@
  
  	/* The sequence of these two function calls matters.*/
  	gmc_v10_0_init_golden_registers(adev);
---- a/drivers/gpu/drm/amd/amdkfd/kfd_crat.c	2026-06-09 10:32:51.000000000 +0000
-+++ b/drivers/gpu/drm/amd/amdkfd/kfd_crat.c	2026-06-20 18:15:45.467336886 +0000
-@@ -1125,6 +1125,11 @@
- 							mem->length_low;
- 			width = mem->width;
- 
-+			if (amdgpu_bc250 == 1) {
-+				width = 256;
-+				heap_type = HSA_MEM_HEAP_TYPE_FB_PUBLIC;
-+			}
-+
- 			/* Multiple banks of the same type are aggregated into
- 			 * one. User mode doesn't care about multiple physical
- 			 * memory segments. It's managed as a single virtual
